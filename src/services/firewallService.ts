@@ -1,5 +1,5 @@
 // services/firewallService.ts
-import pool from '../db';
+import pool from '../db.js';
 
 const validateMode = (mode: string): mode is 'blacklist' | 'whitelist' => {
   return ['blacklist', 'whitelist'].includes(mode);
@@ -102,6 +102,66 @@ export const toggleUrl = async (ids: number[], active: boolean, mode: 'blacklist
   } catch (err: any) {
     console.error('Database update error (URLs):', err);
     throw new Error(`Failed to toggle URLs: ${err.message}`);
+  }
+};
+
+export const toggleIp = async (ids: number[], active: boolean, mode: 'blacklist' | 'whitelist') => {
+  console.log('Entering toggleIp', { ids, active, mode });
+  
+  if (!validateValues(ids)) {
+    throw new Error('IDs array is required and cannot be empty');
+  }
+  
+  if (!validateMode(mode)) {
+    throw new Error('Mode must be either blacklist or whitelist');
+  }
+  
+  if (typeof active !== 'boolean') {
+    throw new Error('Active must be a boolean value');
+  }
+
+  try {
+    const query = `
+      UPDATE firewall_ips
+      SET active = $2
+      WHERE id = ANY($1) AND mode = $3
+      RETURNING id, ip as value, active
+    `;
+    const result = await pool.query(query, [ids, active, mode]);
+    return { type: 'ip', mode, updated: result.rows };
+  } catch (err: any) {
+    console.error('Database update error (IPs):', err);
+    throw new Error(`Failed to toggle IPs: ${err.message}`);
+  }
+};
+
+export const togglePort = async (ids: number[], active: boolean, mode: 'blacklist' | 'whitelist') => {
+  console.log('Entering togglePort', { ids, active, mode });
+  
+  if (!validateValues(ids)) {
+    throw new Error('IDs array is required and cannot be empty');
+  }
+  
+  if (!validateMode(mode)) {
+    throw new Error('Mode must be either blacklist or whitelist');
+  }
+  
+  if (typeof active !== 'boolean') {
+    throw new Error('Active must be a boolean value');
+  }
+
+  try {
+    const query = `
+      UPDATE firewall_ports
+      SET active = $2
+      WHERE id = ANY($1) AND mode = $3
+      RETURNING id, port as value, active
+    `;
+    const result = await pool.query(query, [ids, active, mode]);
+    return { type: 'port', mode, updated: result.rows };
+  } catch (err: any) {
+    console.error('Database update error (ports):', err);
+    throw new Error(`Failed to toggle ports: ${err.message}`);
   }
 };
 

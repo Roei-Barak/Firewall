@@ -1,4 +1,5 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import {
   addIps,
   addUrls,
@@ -7,10 +8,12 @@ import {
   deleteIps,
   deleteUrls,
   deletePorts,
+  toggleIp,
+  togglePort,
   getAllRules
-} from '../services/firewallService';
+} from '../services/firewallService.js';
 
-const router = Router();
+const router: Router = Router();
 
 // POST IPs
 router.post('/ip', async (req: Request, res: Response, next: NextFunction) => {
@@ -46,7 +49,7 @@ router.post('/port', async (req: Request, res: Response, next: NextFunction) => 
 });
 
 // PUT URL (toggle active)
-router.put('/url', async (req: Request, res: Response, next: NextFunction) => {
+router.patch('/url', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { ids, active, mode } = req.body;
     const result = await toggleUrl(ids, active, mode);
@@ -55,7 +58,26 @@ router.put('/url', async (req: Request, res: Response, next: NextFunction) => {
     next(err);
   }
 });
-
+router.patch('/ip', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids, active, mode } = req.body;
+    // וודא שייבאת את toggleIp למעלה
+    const result = await toggleIp(ids, active, mode); 
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+router.patch('/port', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids, active, mode } = req.body;
+    // וודא שייבאת את togglePort למעלה
+    const result = await togglePort(ids, active, mode);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
 // DELETE IPs
 router.delete('/ip', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -89,6 +111,7 @@ router.delete('/port', async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
+
 // GET all rules
 router.get('/rules', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -98,5 +121,55 @@ router.get('/rules', async (req: Request, res: Response, next: NextFunction) => 
     next(err);
   }
 });
+router.put('/rules', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ips, urls, ports } = req.body;
+    let allUpdated: any[] = [];
 
+    // 1. Handle IPs
+    if (ips && ips.ids && ips.ids.length > 0) {
+      const result = await toggleIp(ips.ids, ips.active, ips.mode);
+      if (result.updated) {
+        allUpdated = allUpdated.concat(result.updated.map(item => ({
+          id: item.id,
+          value: item.value,
+          active: item.active,
+          type: 'ip'
+        })));
+      }
+    }
+
+    // 2. Handle URLs
+    if (urls && urls.ids && urls.ids.length > 0) {
+      const result = await toggleUrl(urls.ids, urls.active, urls.mode);
+      if (result.updated) {
+        allUpdated = allUpdated.concat(result.updated.map(item => ({
+          id: item.id,
+          value: item.value,
+          active: item.active,
+          type: 'url'
+        })));
+      }
+    }
+
+    // 3. Handle Ports
+    if (ports && ports.ids && ports.ids.length > 0) {
+      const result = await togglePort(ports.ids, ports.active, ports.mode);
+      if (result.updated) {
+        allUpdated = allUpdated.concat(result.updated.map(item => ({
+          id: item.id,
+          value: item.value,
+          active: item.active,
+          type: 'port'
+        })));
+      }
+    }
+
+    // Return the combined result
+    res.status(200).json({ updated: allUpdated });
+
+  } catch (err) {
+    next(err);
+  }
+});
 export default router;
