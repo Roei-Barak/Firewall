@@ -1,6 +1,14 @@
 // services/firewallService.ts
 import pool from '../db.js';
-
+const groupByMode = (rows: any[]) => {
+  return rows.reduce((acc, row) => {
+    // בדיקה שה-mode קיים (blacklist או whitelist) ודחיפה למערך המתאים
+    if (acc[row.mode]) {
+      acc[row.mode].push(row);
+    }
+    return acc;
+  }, { blacklist: [], whitelist: [] }); // אתחול האובייקט
+};
 const validateMode = (mode: string): mode is 'blacklist' | 'whitelist' => {
   return ['blacklist', 'whitelist'].includes(mode);
 };
@@ -240,9 +248,9 @@ export const getAllRules = async () => {
     const portsResult = await pool.query('SELECT * FROM firewall_ports ORDER BY id');
     
     return {
-      ips: ipsResult.rows,
-      urls: urlsResult.rows,
-      ports: portsResult.rows
+      ips: groupByMode(ipsResult.rows),
+      urls: groupByMode(urlsResult.rows),
+      ports: groupByMode(portsResult.rows)
     };
   } catch (err: any) {
     console.error('Database fetch error (All Rules):', err);
