@@ -9,7 +9,6 @@
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     "target": "esnext",
-    "types": [],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -35,10 +34,13 @@
     // Recommended Options
     "strict": true,
     "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false  ,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-  }
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*"], 
+  "exclude": ["node_modules", "drizzle.config.ts", "src/scripts"] 
 }

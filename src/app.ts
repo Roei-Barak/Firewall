@@ -1,15 +1,36 @@
-
-import express from 'express';
+import express, { Application } from 'express';
 import firewallRoutes from './routes/firewallRoutes.js';
+import logger from './config/logger.js';
+import { connectToDb } from './database.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
-const app = express();
+// דריסת הקונסול
+console.log = (...args) => logger.info(args.join(' '));
+console.error = (...args) => logger.error(args.join(' '));
+console.warn = (...args) => logger.warn(args.join(' '));
+
+// 2. הגדרת הטיפוס במפורש: : Application
+const app: Application = express(); 
+
 app.use(express.json());
 
 app.use('/api/firewall', firewallRoutes);
 
-app.use((err: any, req: any, res: any, next: any) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: err.message || 'Internal Server Error' });
-});
+// Error Middleware
+app.use(errorHandler);
 
-app.listen(process.env.PORT || 5000, () => console.log('Server running on http://localhost:5000'));
+const PORT = process.env.PORT || 5000;
+
+const startServer = async () => {
+  await connectToDb();
+  app.listen(PORT, () => {
+    logger.info(`Server running on http://localhost:${PORT}`);
+  });
+};
+
+// הרצה רק אם אנחנו לא בטסטים
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+export default app;
